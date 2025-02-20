@@ -1,102 +1,127 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+  <q-layout view="hHr lpR fff">
+    <q-header reveal elevated class="indigo text-white">
       <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          @click="toggleLeftDrawer"
-        />
-
+        <q-btn dense flat round icon="menu" @click="toggleLeftDrawer" />
         <q-toolbar-title>
-          Quasar App
+          <q-avatar>
+            <img src="../icons/logo.webp" />
+          </q-avatar>
+          JoYos Solutions
         </q-toolbar-title>
-
-        <div>Quasar v{{ $q.version }}</div>
+        <q-space />
+        <div v-if="isAuthenticated">
+          Bienvenido {{ username }}
+          <q-btn icon="logout" flat dense @click="logout"></q-btn>
+        </div>
+        <div v-if="!isAuthenticated">
+          <q-btn icon="login" flat dense @click="toggleLogin"></q-btn>
+        </div>
+        <!-- Mostrar el nombre del usuario -->
       </q-toolbar>
     </q-header>
 
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      bordered
-    >
+    <q-drawer show-if-above v-model="leftDrawerOpen" side="left" bordered>
       <q-list>
-        <q-item-label
-          header
-        >
-          Essential Links
-        </q-item-label>
-
-        <EssentialLink
-          v-for="link in linksList"
-          :key="link.title"
-          v-bind="link"
-        />
+        <q-item v-for="route in filteredRoutes" :key="route.path" clickable :to="route.path">
+          <q-item-section avatar>
+            <q-icon color="light-blue" :name="(route.meta as RouteMeta).icon ?? ''" />
+          </q-item-section>
+          <q-item-section>{{ route.name }}</q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
     <q-page-container>
       <router-view />
+
+      <LoginComponent v-model:show="showLogin" />
+      <OfertaComponent />
     </q-page-container>
+
+    <q-footer reveal elevated class="bg-grey-8 text-white">
+      <q-toolbar>
+        <q-toolbar-title>
+          <div>@Copyright JoYos Solutions 2025</div>
+        </q-toolbar-title>
+      </q-toolbar>
+    </q-footer>
   </q-layout>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue';
-import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink.vue';
+<script lang="ts">
+import { ref, computed, defineComponent } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import LoginComponent from 'src/components/LoginComponent.vue'
+import { useRouter } from 'vue-router'
+import type { RouteMeta } from '../components/models'
+import OfertaComponent from 'src/components/OfertaComponent.vue'
+export default defineComponent({
+  components: {
+    LoginComponent,
+    OfertaComponent,
+  },
+  setup() {
+    const authStore = useAuthStore()
+    const showLogin = ref(false)
+    const router = useRouter()
+    const isAuthenticated = computed(() => authStore.isAuthenticated)
+    const username = computed(() => authStore.getUsername)
 
-const linksList: EssentialLinkProps[] = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework'
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev'
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev'
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
-  }
-];
+    const openLogin = () => {
+      showLogin.value = true
+    }
 
-const leftDrawerOpen = ref(false);
+    const closeLogin = () => {
+      showLogin.value = false
+    }
 
-function toggleLeftDrawer () {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
-}
+    const logout = async () => {
+      authStore.logout()
+      await router.push('/')
+    }
+    const leftDrawerOpen = ref(false)
+    const goTo = async (route: string) => {
+      await router.push(route)
+    }
+    const filteredRoutes = computed(() => {
+      return router.getRoutes().filter((route) => {
+        const meta = route.meta as RouteMeta
+        const requiresAuth = meta.requiresAuth || false
+        const allowedRoles = meta.roles || []
+        //Excluir Pagina de registro en el menu
+        if (route.name === 'Registro') return false
+        if (route.name === 'Pagina Error') return false
+        if (route.name === 'Blanco') return false
+        if (!requiresAuth) return true
+        if (!authStore.isAuthenticated) return false
+
+        return (
+          allowedRoles.length === 0 ||
+          allowedRoles.some((role: string) => authStore.user?.roles.includes(role))
+        )
+      })
+    })
+    return {
+      showLogin,
+      isAuthenticated,
+      username,
+      openLogin,
+      closeLogin,
+      logout,
+      leftDrawerOpen,
+      goTo,
+      toggleLeftDrawer() {
+        leftDrawerOpen.value = !leftDrawerOpen.value
+      },
+      toggleLogin() {
+        showLogin.value = !showLogin.value
+      },
+      ShowUsername() {
+        computed(() => authStore.getUsername)
+      },
+      filteredRoutes,
+    }
+  },
+})
 </script>
