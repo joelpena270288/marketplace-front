@@ -5,6 +5,9 @@ import Dashboard from '../pages/DashboardPage.vue'
 import IndexPage from 'src/pages/IndexPage.vue'
 import { createRouterGuard } from './router-guard'
 import RegistroPage from 'src/pages/RegistroPage.vue'
+import PerfilPage from 'src/pages/PerfilPage.vue'
+import DashboardUserPage from 'src/pages/DashboardUserPage.vue'
+import AllProducts from 'src/pages/AllProducts.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -22,8 +25,12 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/perfil',
         name: 'Perfil de Usuario',
-        component: Dashboard,
-        meta: { icon: 'account_circle', requiresAuth: true, roles: ['admin'] },
+        component: PerfilPage,
+        meta: {
+          icon: 'account_circle',
+          requiresAuth: true,
+          roles: ['admin', 'estandar', 'premiun'],
+        },
       },
       {
         path: '/dashboard',
@@ -36,7 +43,7 @@ const routes: RouteRecordRaw[] = [
         path: '/dashboard_premiun',
         name: 'Administración',
 
-        component: IndexPage,
+        component: DashboardUserPage,
         meta: { icon: 'admin_panel_settings', requiresAuth: true, roles: ['premiun'] },
       },
       {
@@ -48,7 +55,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/product',
         name: 'Productos',
-        component: IndexPage,
+        component: AllProducts,
         meta: { icon: 'inventory' },
       },
 
@@ -64,14 +71,14 @@ const routes: RouteRecordRaw[] = [
         name: 'Foro',
 
         component: Dashboard,
-        meta: { icon: 'forum', requiresAuth: true, roles: ['admin'] },
+        meta: { icon: 'forum', requiresAuth: true, roles: ['admin', 'estandar'] },
       },
       {
         path: '/chat',
         name: 'Chat',
 
         component: Dashboard,
-        meta: { icon: 'chat', requiresAuth: true, roles: ['admin'] },
+        meta: { icon: 'chat', requiresAuth: true, roles: ['admin', 'estandar'] },
       },
       {
         path: '/registro',

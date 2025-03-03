@@ -14,6 +14,12 @@
             filled
           />
           <q-input
+            v-model="form.lastname"
+            label="Apellidos"
+            :rules="[(val) => !!val || 'Los Apellidos es obligatorio']"
+            filled
+          />
+          <q-input
             v-model="form.email"
             label="Correo Electrónico"
             type="email"
@@ -71,11 +77,12 @@
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { api } from 'src/boot/axios'
-
+import { useRouter } from 'vue-router'
+import type { AxiosError } from 'axios'
 const $q = useQuasar()
 const registerForm = ref<InstanceType<typeof HTMLFormElement> | null>(null)
 const showVerificationCode = ref(false)
-
+const router = useRouter()
 const form = ref({
   name: '',
   email: '',
@@ -83,6 +90,7 @@ const form = ref({
   confirmPassword: '',
   verificationCode: '',
   username: '',
+  lastname: '',
 })
 const sendVerificationCode = async () => {
   if (!/.+@.+\..+/.test(form.value.email)) {
@@ -91,13 +99,24 @@ const sendVerificationCode = async () => {
   }
 
   try {
+    await api.get('http://localhost:3000/users/check-exists', {
+      params: { username: form.value.username, email: form.value.email },
+    })
+
     const response = await api.post('http://localhost:3000/mail/send-code', {
       email: form.value.email,
     })
     $q.notify({ type: 'positive', message: 'Código enviado al correo' })
     console.log('Código de verificación:', response.data.code) // Solo para pruebas
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al enviar el código' })
+    // Mostrar el campo para ingresar el código
+    showVerificationCode.value = true
+  } catch (error) {
+    const axiosError = error as AxiosError // 👈 Aquí convertimos el error
+    if (axiosError.response?.status === 409) {
+      $q.notify({ type: 'negative', message: 'El usuario o correo ya existen' })
+    } else {
+      $q.notify({ type: 'negative', message: 'Error al enviar el código' })
+    }
   }
 }
 const validateVerificationCode = async () => {
@@ -127,8 +146,20 @@ const register = () => {
         const isCodeValid = await validateVerificationCode()
         if (!isCodeValid) return
 
-        $q.notify({ type: 'positive', message: 'Registro exitoso' })
-        // Llamar a la API para registrar al usuario
+        try {
+          await api.post('/users', {
+            username: form.value.username,
+            email: form.value.email,
+            password: form.value.password,
+            lastname: form.value.lastname,
+            name: form.value.name,
+          })
+          $q.notify({ type: 'positive', message: 'Registro exitoso' })
+          await router.push('/')
+        } catch {
+          $q.notify({ type: 'negative', message: 'Error en el registro' })
+          showVerificationCode.value = false // Ocultar campo y volver a mostrar botón
+        }
       }
     })
   }

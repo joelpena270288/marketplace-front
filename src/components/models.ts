@@ -27,3 +27,17 @@ export interface RouteMeta {
   requiresAuth?: boolean
   roles?: string[]
 }
+export interface Tienda {
+  id: number
+  name: string
+  description: string
+}
+export interface Producto {
+  id: string
+  name: string
+  price: number
+  stock: number
+  store: string
+  image: string
+  category: string
+}
